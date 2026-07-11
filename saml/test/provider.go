@@ -435,6 +435,8 @@ type responseOptions struct {
 	signAssertionElem       bool
 	wrapAttackAssertionElem bool
 	expired                 bool
+	notBefore               string
+	notOnOrAfter            string
 }
 
 type ResponseOption func(*responseOptions)
@@ -484,12 +486,28 @@ func WithResponseExpired() ResponseOption {
 	}
 }
 
+// WithResponseValidity sets the Conditions and bearer SubjectConfirmationData
+// validity window on the generated response.
+func WithResponseValidity(notBefore, notOnOrAfter time.Time) ResponseOption {
+	return func(o *responseOptions) {
+		o.notBefore = notBefore.UTC().Format(time.RFC3339Nano)
+		o.notOnOrAfter = notOnOrAfter.UTC().Format(time.RFC3339Nano)
+	}
+}
+
 func (p *TestProvider) SamlResponse(t *testing.T, opts ...ResponseOption) string {
 	r := require.New(t)
 
 	opt := getResponseOptions(opts...)
 
-	notOnOrAfter := "2200-01-18T06:21:48Z"
+	notBefore := opt.notBefore
+	if notBefore == "" {
+		notBefore = "2001-01-18T06:21:48Z"
+	}
+	notOnOrAfter := opt.notOnOrAfter
+	if notOnOrAfter == "" {
+		notOnOrAfter = "2200-01-18T06:21:48Z"
+	}
 
 	if opt.expired {
 		notOnOrAfter = "2001-01-18T06:21:48Z"
@@ -530,7 +548,7 @@ func (p *TestProvider) SamlResponse(t *testing.T, opts ...ResponseOption) string
 						},
 					},
 					Conditions: &types.Conditions{
-						NotBefore:    "2001-01-18T06:21:48Z",
+						NotBefore:    notBefore,
 						NotOnOrAfter: notOnOrAfter,
 						AudienceRestrictions: []types.AudienceRestriction{
 							{
