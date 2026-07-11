@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"time"
 
 	"github.com/jonboulle/clockwork"
 	saml2 "github.com/russellhaering/gosaml2"
@@ -21,6 +22,7 @@ import (
 
 type parseResponseOptions struct {
 	clock                            clockwork.Clock
+	clockSkew                        time.Duration
 	skipRequestIDValidation          bool
 	skipAssertionConditionValidation bool
 	skipSignatureValidation          bool
@@ -32,11 +34,23 @@ type parseResponseOptions struct {
 func parseResponseOptionsDefault() parseResponseOptions {
 	return parseResponseOptions{
 		clock:                            clockwork.NewRealClock(),
+		clockSkew:                        0,
 		skipRequestIDValidation:          false,
 		skipAssertionConditionValidation: false,
 		skipSignatureValidation:          false,
 		validateResponseSignature:        false,
 		validateAssertionSignature:       false,
+	}
+}
+
+// WithClockSkew sets the symmetric tolerance applied only to SAML protocol
+// time conditions. XML signing-certificate validity continues to use the
+// unmodified clock supplied through WithClock.
+func WithClockSkew(skew time.Duration) Option {
+	return func(o interface{}) {
+		if o, ok := o.(*parseResponseOptions); ok {
+			o.clockSkew = skew
+		}
 	}
 }
 
@@ -129,6 +143,8 @@ func (sp *ServiceProvider) ParseResponse(
 		return nil, fmt.Errorf("%s: missing saml response: %w", op, ErrInvalidParameter)
 	case requestID == "":
 		return nil, fmt.Errorf("%s: missing request ID: %w", op, ErrInvalidParameter)
+	case opts.clockSkew < 0:
+		return nil, fmt.Errorf("%s: clock skew cannot be negative: %w", op, ErrInvalidParameter)
 	case opts.skipSignatureValidation && (opts.validateResponseSignature || opts.validateAssertionSignature):
 		return nil, fmt.Errorf("%s: option `skip signature validation` cannot be true with any validate signature option : %w", op, ErrInvalidParameter)
 	}
@@ -138,6 +154,7 @@ func (sp *ServiceProvider) ParseResponse(
 		opts.skipSignatureValidation,
 		opts.assertionConsumerServiceURL,
 		opts.clock,
+		opts.clockSkew,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%s: error initializing parser: %w", op, err)
@@ -204,6 +221,7 @@ func (sp *ServiceProvider) internalParser(
 	skipSignatureValidation bool,
 	assertionConsumerServiceURL string,
 	clock clockwork.Clock,
+	clockSkew time.Duration,
 ) (*saml2.SAMLServiceProvider, error) {
 	const op = "saml.(ServiceProvider).internalParser"
 	switch {
@@ -247,6 +265,7 @@ func (sp *ServiceProvider) internalParser(
 		AssertionConsumerServiceURL: assertionConsumerServiceURL,
 		SkipSignatureValidation:     skipSignatureValidation,
 		Clock:                       dsig.NewFakeClock(clock),
+		ClockSkew:                   clockSkew,
 	}, nil
 }
 

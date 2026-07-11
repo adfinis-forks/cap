@@ -41,6 +41,10 @@ func TestServiceProvider_ParseResponse(t *testing.T) {
 
 	fakeTime, err := time.Parse("2006-01-02 15:04:05", "2023-08-25 14:33:53")
 	require.NoError(t, err)
+	expiredWithinSkew, err := time.Parse(time.RFC3339, "2001-01-18T06:22:17Z")
+	require.NoError(t, err)
+	expiredAtSkewBoundary, err := time.Parse(time.RFC3339, "2001-01-18T06:22:18Z")
+	require.NoError(t, err)
 
 	testCfgWithBadMetadata, err := saml.NewConfig(testEntityID, testAcs, fmt.Sprintf("%s/saml/invalid", tp.ServerURL()))
 	require.NoError(t, err)
@@ -231,6 +235,39 @@ func TestServiceProvider_ParseResponse(t *testing.T) {
 			requestID:       "request-id",
 			wantErrAs:       &saml2.ErrInvalidValue{},
 			wantErrContains: "unable to validate encoded response: Expired NotOnOrAfter value",
+		},
+		{
+			name:      "success - expired within clock skew",
+			sp:        testSp,
+			samlResp:  base64.StdEncoding.EncodeToString([]byte(tp.SamlResponse(t, testprovider.WithResponseExpired()))),
+			requestID: testRequestId,
+			opts: []saml.Option{
+				saml.WithClock(clockwork.NewFakeClockAt(expiredWithinSkew)),
+				saml.WithClockSkew(30 * time.Second),
+				saml.InsecureSkipSignatureValidation(),
+			},
+		},
+		{
+			name:      "expired at exclusive clock skew boundary",
+			sp:        testSp,
+			samlResp:  base64.StdEncoding.EncodeToString([]byte(tp.SamlResponse(t, testprovider.WithResponseExpired()))),
+			requestID: testRequestId,
+			opts: []saml.Option{
+				saml.WithClock(clockwork.NewFakeClockAt(expiredAtSkewBoundary)),
+				saml.WithClockSkew(30 * time.Second),
+				saml.InsecureSkipSignatureValidation(),
+			},
+			wantErrAs:       &saml2.ErrInvalidValue{},
+			wantErrContains: "unable to validate encoded response: Expired NotOnOrAfter value",
+		},
+		{
+			name:            "negative clock skew",
+			sp:              testSp,
+			samlResp:        "response",
+			requestID:       testRequestId,
+			opts:            []saml.Option{saml.WithClockSkew(-time.Nanosecond)},
+			wantErrIs:       saml.ErrInvalidParameter,
+			wantErrContains: "clock skew cannot be negative",
 		},
 		{
 			name:            "nil-sp",
