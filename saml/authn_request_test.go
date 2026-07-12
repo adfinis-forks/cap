@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -159,6 +160,10 @@ func Test_CreateAuthnRequest_Options(t *testing.T) {
 		r.NotNil(got.NameIDPolicy)
 		r.True(got.NameIDPolicy.AllowCreate)
 		r.Equal(core.NameIDFormatEmail, got.NameIDPolicy.Format)
+		raw, err := got.CreateXMLDocument(0)
+		r.NoError(err)
+		r.Contains(string(raw), `NameIDPolicy Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"`)
+		r.False(strings.Contains(string(raw), `<Format>`))
 	})
 
 	t.Run("When option ForceAuthn is set", func(t *testing.T) {

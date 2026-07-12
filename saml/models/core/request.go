@@ -87,7 +87,7 @@ MUST be less than (earlier than) the value for NotOnOrAfter.
 // the requested subject.
 // See 3.4.1.1 http://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf
 type NameIDPolicy struct {
-	Format          NameIDFormat `xml:",omitempty"`
+	Format          NameIDFormat `xml:",attr,omitempty"`
 	SPNameQualifier string       `xml:",attr,omitempty"`
 	AllowCreate     bool         `xml:",attr"`
 }
