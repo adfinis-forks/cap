@@ -3,13 +3,13 @@ module github.com/hashicorp/cap/saml
 go 1.25.0
 
 require (
-	github.com/beevik/etree v1.6.0
+	github.com/beevik/etree v1.7.0
 	github.com/crewjam/go-xmlsec v0.0.0-20200414151428-d2b1a58f7262
 	github.com/crewjam/saml v0.4.14
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/jonboulle/clockwork v0.5.0
-	github.com/russellhaering/gosaml2 v0.11.0
-	github.com/russellhaering/goxmldsig v1.6.0
+	github.com/russellhaering/gosaml2 v0.12.1-0.20260805181527-c47eb2cf608a
+	github.com/russellhaering/goxmldsig v1.6.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -20,7 +20,7 @@ require (
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

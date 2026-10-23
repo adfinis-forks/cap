@@ -1,4 +1,4 @@
-// Copyright IBM Corp. 2020, 2025
+// Copyright IBM Corp. 2020, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package saml
@@ -198,6 +198,14 @@ func (sp *ServiceProvider) ParseResponse(
 				// there isn't a subject, but we've left this here since it's a
 				// required for our implementation as well.
 				return nil, fmt.Errorf("%s: %w", op, ErrMissingSubject)
+			case assert.Subject.SubjectConfirmation != nil &&
+				assert.Subject.SubjectConfirmation.SubjectConfirmationData != nil &&
+				assert.Subject.SubjectConfirmation.SubjectConfirmationData.InResponseTo != requestID:
+				return nil, fmt.Errorf(
+					"SubjectConfirmationData.InResponseTo (%s) doesn't match the expected requestID (%s)",
+					assert.Subject.SubjectConfirmation.SubjectConfirmationData.InResponseTo,
+					requestID,
+				)
 			case assert.AttributeStatement == nil:
 				return nil, fmt.Errorf("%s: %w", op, ErrMissingAttributeStmt)
 			}
